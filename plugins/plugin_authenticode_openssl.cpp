@@ -25,6 +25,7 @@
 #include <openssl/x509.h>
 #include <openssl/bio.h>
 #include <openssl/asn1.h>
+#include <openssl/err.h>
 
 #include "plugin_framework/plugin_interface.h"
 
@@ -367,13 +368,29 @@ void add_certificate_information(pPKCS7 p, pResult res)
 
 // ----------------------------------------------------------------------------
 
-bool verify_signature(const mana::PE& pe, pPKCS7 signature, pResult res)
+bool verify_signature(const mana::PE& pe, pPKCS7 signature, AuthenticodeDigest& digest, pResult res)
 {
-    //pBIO in(BIO_new(BIO_s_mem()), BIO_free);
-    //BIO_puts(in.get(), "YOLOCRYPTO!");
+    /*if (!EVP_add_digest(EVP_md5()) || !EVP_add_digest(EVP_sha1()) || !EVP_add_digest(EVP_sha256()) ||
+        !EVP_add_digest(EVP_sha384()) || !EVP_add_digest(EVP_sha512()) || 
+        !EVP_add_digest_alias(SN_sha1WithRSAEncryption, SN_sha1WithRSA))
+    {
+        PRINT_ERROR << "[plugin_authenticode] Could not initialize OpenSSL digests." << std::endl;
+        return false;
+    }*/
+
+    // Put the data to verify inside a BIO. !!! UNFINISHED
+    pBIO digest_bio(BIO_new(BIO_s_mem()), BIO_free);
+    BIO_write(digest_bio.get(), &digest.digest[0], digest.digest.size());
+
+    // TEST Trusted certificate
+    STACK_OF(X509)* signers = PKCS7_get0_signers(signature.get(), nullptr, 0);
+    X509_STORE* cert_store = X509_STORE_new();
+    X509_STORE_add_cert(cert_store, sk_X509_value(signers, 0));
+    
     pBIO out(BIO_new(BIO_s_mem()), BIO_free);
-    int verification = PKCS7_verify(signature.get(), nullptr, nullptr, NULL, out.get(), PKCS7_BINARY);
-    //std::cout << "Verification result: " << verification << std::endl;
+    int verification = PKCS7_verify(signature.get(), signers, cert_store, nullptr, out.get(), PKCS7_BINARY);
+    std::cout << "Verification result: " << verification << std::endl;
+    std::cout << "OpenSSL error: " << ERR_reason_error_string(ERR_get_error()) << std::endl;
 }
 
 /**
@@ -442,10 +459,10 @@ class OpenSSLAuthenticodePlugin : public IPlugin
                 PRINT_WARNING << "[plugin_authenticode] Could not read the digest information." << std::endl;
                 continue;
             }
-            
+
             // The PKCS7 certificate has been parsed successfully. Start the analysis.
             add_certificate_information(p, res);
-            verify_signature(pe, p, res);
+            verify_signature(pe, p, digest, res);
             res->set_summary("The PE is digitally signed.");
         }
         

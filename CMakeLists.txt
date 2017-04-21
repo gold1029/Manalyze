@@ -50,15 +50,22 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin)
 
+include_directories(${PROJECT_SOURCE_DIR}
+				    ${PROJECT_SOURCE_DIR}/include
+					${PROJECT_SOURCE_DIR}/external
+					${PROJECT_SOURCE_DIR}/external/yara/include
+					${PROJECT_SOURCE_DIR}/plugins
+					${Boost_INCLUDE_DIRS})
 
-include_directories(
-						${PROJECT_SOURCE_DIR}
-						${PROJECT_SOURCE_DIR}/include
-						${PROJECT_SOURCE_DIR}/external
-						${PROJECT_SOURCE_DIR}/external/yara/include
-						${PROJECT_SOURCE_DIR}/plugins
-						${Boost_INCLUDE_DIRS}
-                   )
+# Add OpenSSL include directories explicitly if the library is present.
+if (OPENSSL_FOUND)
+	if (NOT OPENSSL_ROOT_DIR)
+		message(FATAL_ERROR "Could not locate OpenSSL's root directory. Please run again with cmake -DOPENSSL_ROOT_DIR=[dir]." )
+	else()
+		message("-- OpenSSL version: ${OPENSSL_VERSION}")
+	endif()
+	include_directories(${OPENSSL_ROOT_DIR}/include)
+endif()
 
 add_definitions(-DWITH_MANACOMMONS) # Use functions from manacommons.
 add_library(manape SHARED manape/pe.cpp manape/nt_values.cpp manape/utils.cpp manape/imports.cpp manape/resources.cpp manape/section.cpp manape/imported_library.cpp)
@@ -139,5 +146,4 @@ target_link_libraries(
 						hash-library
 						${Boost_LIBRARIES}
                      )
-
 
