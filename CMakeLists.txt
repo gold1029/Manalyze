@@ -59,12 +59,12 @@ include_directories(${PROJECT_SOURCE_DIR}
 
 # Add OpenSSL include directories explicitly if the library is present.
 if (OPENSSL_FOUND)
-	if (NOT OPENSSL_ROOT_DIR)
+	if (NOT OPENSSL_INCLUDE_DIR)
 		message(FATAL_ERROR "Could not locate OpenSSL's root directory. Please run again with cmake -DOPENSSL_ROOT_DIR=[dir]." )
 	else()
 		message("-- OpenSSL version: ${OPENSSL_VERSION}")
 	endif()
-	include_directories(${OPENSSL_ROOT_DIR}/include)
+	include_directories(${OPENSSL_INCLUDE_DIR})
 endif()
 
 add_definitions(-DWITH_MANACOMMONS) # Use functions from manacommons.
